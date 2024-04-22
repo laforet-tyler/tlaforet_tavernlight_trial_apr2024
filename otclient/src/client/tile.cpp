@@ -145,6 +145,36 @@ void Tile::draw(const Point& dest, float scaleFactor, int drawFlags, LightView *
     }
 }
 
+void Tile::drawAfterimageEffect(const Point& dest, float scaleFactor, int drawFlags, LightView* lightView)
+{
+    // renders creatures on the tile with the afterimage effect (if necessary)
+    // code is largely adapted from Tile::draw()
+
+    // check if creature is animating
+    bool animate = drawFlags & Otc::DrawAnimations;
+
+    // try drawing creatures
+    if (drawFlags & Otc::DrawCreatures) {
+        // check for and draw any creatures currently animating (such as moving between tiles)
+        if (animate) {
+            for (const CreaturePtr& creature : m_walkingCreatures) {
+                creature->drawAfterimageEffect(Point(dest.x + ((creature->getPosition().x - m_position.x) * Otc::TILE_PIXELS - m_drawElevation) * scaleFactor,
+                                                     dest.y + ((creature->getPosition().y - m_position.y) * Otc::TILE_PIXELS - m_drawElevation) * scaleFactor), scaleFactor, animate, lightView);
+            }
+        }
+
+        // check for and draw any creatures currently static
+        for (auto it = m_things.rbegin(); it != m_things.rend(); ++it) {
+            const ThingPtr& thing = *it;
+            if (!thing->isCreature())
+                continue;
+            CreaturePtr creature = thing->static_self_cast<Creature>();
+            if (creature && (!creature->isWalking() || !animate))
+                creature->drawAfterimageEffect(dest - m_drawElevation * scaleFactor, scaleFactor, animate, lightView);
+        }
+    }
+}
+
 void Tile::clean()
 {
     while(!m_things.empty())

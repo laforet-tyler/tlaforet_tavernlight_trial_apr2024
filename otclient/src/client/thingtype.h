@@ -133,6 +133,9 @@ public:
 
     void draw(const Point& dest, float scaleFactor, int layer, int xPattern, int yPattern, int zPattern, int animationPhase, LightView *lightView = nullptr);
 
+    // get the current render rectangle for the selected texture at origin (0,0)
+    Rect ThingType::getTextureFrameRect(float scaleFactor, int layer, int xPattern, int yPattern, int zPattern, int animationPhase); 
+
     uint16 getId() { return m_id; }
     ThingCategory getCategory() { return m_category; }
     bool isNull() { return m_null; }

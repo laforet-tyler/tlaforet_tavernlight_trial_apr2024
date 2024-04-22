@@ -1976,6 +1976,20 @@ void ProtocolGame::parseModalDialog(const InputMessagePtr& msg)
 void ProtocolGame::parseExtendedOpcode(const InputMessagePtr& msg)
 {
     int opcode = msg->getU8();
+    if (opcode == 10) {
+        // extended opcode represents a request from the server to change whether a 
+        // creature should be rendered with the afterimage effect
+        int id = msg->getU32();
+        int enableAfterimages = msg->getU8();
+
+        CreaturePtr creature = g_map.getCreatureById(id);
+        if (creature) {
+            creature->setAfterimageRendering(enableAfterimages >= 1);
+        }
+
+        return;
+    }
+
     std::string buffer = msg->getString();
 
     if(opcode == 0)

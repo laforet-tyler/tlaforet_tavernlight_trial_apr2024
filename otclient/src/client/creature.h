@@ -50,6 +50,9 @@ public:
     void drawOutfit(const Rect& destRect, bool resize);
     void drawInformation(const Point& point, bool useGray, const Rect& parentRect, int drawFlags);
 
+    void drawAfterimageEffect(Point dest, float scaleFactor, bool animate, LightView* lightView = nullptr); // renders a creature with the afterimage effect
+    void setAfterimageRendering(bool renderAfterimages) { m_renderAfterimages = renderAfterimages;  } // sets whether or not creature should render with afterimages
+
     void setId(uint32 id) { m_id = id; }
     void setName(const std::string& name);
     void setHealthPercent(uint8 healthPercent);
@@ -178,6 +181,8 @@ protected:
     Timer m_outfitColorTimer;
 
     std::array<double, Otc::LastSpeedFormula> m_speedFormula;
+
+    stdext::boolean<false> m_renderAfterimages; // whether or not creature should render with afterimages
 
     // walk related
     int m_walkAnimationPhase;

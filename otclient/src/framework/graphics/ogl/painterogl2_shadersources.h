@@ -71,4 +71,15 @@ static const std::string glslSolidColorFragmentShader = "\n\
         return u_Color;\n\
     }\n";
 
+// fragment shader code for the edge glow effect
+// renders all pixels of the passed texture as fully red pixels with original transparency
+// when rendered with an offset of 1 from the original position gives the effect of adding
+// a red outline to the sprite
+static const std::string glslEdgeGlowFragmentShader = "\n\
+    varying mediump vec2 v_TexCoord;\n\
+    uniform sampler2D u_Tex0;\n\
+    lowp vec4 calculatePixel() {\n\
+        return vec4(1.0, 0.0, 0.0, texture2D(u_Tex0, v_TexCoord).a);\n\
+    }\n";
+
 #endif

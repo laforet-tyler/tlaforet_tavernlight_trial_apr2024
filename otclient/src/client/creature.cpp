@@ -30,6 +30,7 @@
 #include "effect.h"
 #include "luavaluecasts.h"
 #include "lightview.h"
+#include "shadermanager.h"
 
 #include <framework/graphics/graphics.h>
 #include <framework/core/eventdispatcher.h>
@@ -191,6 +192,182 @@ void Creature::internalDrawOutfit(Point dest, float scaleFactor, bool animateWal
     }
 
     g_painter->resetColor();
+}
+
+void Creature::drawAfterimageEffect(Point dest, float scaleFactor, bool animate, LightView* lightView)
+{
+    // renders a creature with the afterimage effect
+    // code is largely adapted from Creature::draw(), Creature::internalDrawOutfit() and Creature::drawOutfit()
+
+    // if creature cannot be seen or does not currently have the afterimage effect, skip rendering
+    if (!canBeSeen() || !m_renderAfterimages)
+        return;
+
+    // update render destination with animation offset
+    Point animationOffset = animate ? m_walkOffset : Point(0, 0);
+    dest += animationOffset * scaleFactor;
+
+    // determine current animation phase
+    int animationPhase = animate ? m_walkAnimationPhase : 0;
+    if (isAnimateAlways() && animate) {
+        int ticksPerFrame = 1000 / getAnimationPhases();
+        animationPhase = (g_clock.millis() % (ticksPerFrame * getAnimationPhases())) / ticksPerFrame;
+    }
+
+    // determine direction creature is facing
+    int xPattern;
+    if (m_direction == Otc::NorthEast || m_direction == Otc::SouthEast)
+        xPattern = Otc::East;
+    else if (m_direction == Otc::NorthWest || m_direction == Otc::SouthWest)
+        xPattern = Otc::West;
+    else
+        xPattern = m_direction;
+
+    // determine if creature is riding a mount
+    int zPattern = 0;
+    if (m_outfit.getMount() != 0) {
+        zPattern = std::min<int>(1, getNumPatternZ() - 1);
+    }
+
+    // get the rectangle area of the screen the creature will render into based on an origin (0,0)
+    int frameX1 = INT_MAX;
+    int frameX2 = INT_MIN;
+    int frameY1 = INT_MAX;
+    int frameY2 = INT_MIN;
+    for (int yPattern = 0; yPattern < getNumPatternY(); yPattern++) {
+        // continue if creature doesn't have this texture
+        if (yPattern > 0 && !(m_outfit.getAddons() & (1 << (yPattern - 1))))
+            continue;
+
+        // get the render rectangle for this texture
+        auto datType = rawGetThingType();
+        Rect textureFrame = datType->getTextureFrameRect(scaleFactor, 0, xPattern, yPattern, zPattern, animationPhase);
+
+        // update overall render rectangle with new bounds based on texture render rectangle
+        if (textureFrame.left() < frameX1) {
+            frameX1 = textureFrame.left();
+        }
+        if (textureFrame.right() > frameX2) {
+            frameX2 = textureFrame.right();
+        }
+        if (textureFrame.top() < frameY1) {
+            frameY1 = textureFrame.top();
+        }
+        if (textureFrame.bottom() > frameY2) {
+            frameY2 = textureFrame.bottom();
+        }
+    }
+
+    // get the size of the temporary framebuffer needed to render the creature solo
+    int frameSizeX = (frameX2 - frameX1) + 1;
+    int frameSizeY = (frameY2 - frameY1) + 1;
+    if (frameSizeX <= 0 || frameSizeY <= 0)
+        return;
+
+    // set-up displacement from origin point (0,0) needed to make sure creature renders into temporary framebuffer fully
+    // accounts for jump offset and the vector from (0,0) to (x1,y1) of the creature's render rectangle
+    PointF jumpOffsetF = m_jumpOffset * scaleFactor;
+    Point jumpOffset = Point(stdext::round(jumpOffsetF.x), stdext::round(jumpOffsetF.y)) * -1;
+    Point displacement = Point(frameX1, frameY1) * -1 + jumpOffset;
+
+    // save current state of the render engine
+    g_painter->saveState();
+
+    // create temporary framebuffer for creature rendering
+    // we need this buffer so we can apply shader effects to the fully-assembled sprite of the creature
+    // instead of just rendering directly to the background layer
+    FrameBufferPtr outfitBuffer = g_framebuffers.getTemporaryFrameBuffer();
+    outfitBuffer->resize(Size(frameSizeX, frameSizeY));
+    outfitBuffer->bind();
+    g_painter->setAlphaWriting(true);
+    g_painter->clear(Color::alpha);
+
+    // draw creature into temporary framebuffer
+    internalDrawOutfit(displacement, scaleFactor, animate, animate, m_direction, lightView);
+
+    // release temporary framebuffer from rendering and restore former rendering state
+    outfitBuffer->release();
+    g_painter->restoreSavedState();
+
+    // setup source rectangle for the temporary framebuffer
+    Rect srcRect = Rect(0, 0, frameSizeX, frameSizeY);
+
+    // get afterimage offset from creature based on their current direction
+    Point afterimageOffset;
+    bool renderAfterimagesFromEnd;
+    if (m_direction == Otc::NorthEast || m_direction == Otc::SouthEast || m_direction == Otc::East) {
+        afterimageOffset = Point(-16 * scaleFactor, 0);
+        renderAfterimagesFromEnd = true;
+    }
+    else if (m_direction == Otc::NorthWest || m_direction == Otc::SouthWest || m_direction == Otc::West) {
+        afterimageOffset = Point(16 * scaleFactor, 0);
+        renderAfterimagesFromEnd = false;
+    }
+    else if (m_direction == Otc::South) {
+        afterimageOffset = Point(0, -16 * scaleFactor);
+        renderAfterimagesFromEnd = true;
+    }
+    else if (m_direction == Otc::North) {
+        afterimageOffset = Point(0, 16 * scaleFactor);
+        renderAfterimagesFromEnd = false;
+    }
+    else {
+        afterimageOffset = Point(0, 0);
+        renderAfterimagesFromEnd = false;
+    }
+
+    // obtain afterimage and edge glow shaders
+    PainterShaderProgramPtr m_afterimageShader = g_shaders.getShader("Afterimage");
+    PainterShaderProgramPtr m_edgeGlowShader = g_shaders.getShader("Edge Glow");
+    if (m_afterimageShader == nullptr || m_edgeGlowShader == nullptr) {
+        return;
+    }
+
+    // save current state of the render engine
+    g_painter->saveState();
+
+    // render afterimages of the creature onto the background layer
+    g_painter->setShaderProgram(m_afterimageShader);
+    g_painter->setColor(Color::white);
+    if (renderAfterimagesFromEnd) {
+        for (int i = 4; i >= 1; i--) {
+            g_painter->setOpacity(1.0f - 0.66f / 4 * i);
+            outfitBuffer->draw(Rect((dest.x - displacement.x) + afterimageOffset.x * i,
+                (dest.y - displacement.y) + afterimageOffset.y * i,
+                frameSizeX, frameSizeY),
+                srcRect);
+        }
+    }
+    else {
+        for (int i = 1; i <= 4; i++) {
+            g_painter->setOpacity(1.0f - 0.66f / 4 * i);
+            outfitBuffer->draw(Rect((dest.x - displacement.x) + afterimageOffset.x * i,
+                (dest.y - displacement.y) + afterimageOffset.y * i,
+                frameSizeX, frameSizeY),
+                srcRect);
+        }
+    }
+
+    // render edge glow effect around the creature onto the background layer
+    // this is accomplished simply by rendering two copies of the sprite as a fully-opaque single-color sprite
+    // behind the original sprite to the left and right
+    g_painter->setShaderProgram(m_edgeGlowShader);
+    g_painter->setOpacity(1.0f);
+    outfitBuffer->draw(Rect((dest.x - displacement.x) - scaleFactor, 
+                            dest.y - displacement.y, 
+                            frameSizeX, frameSizeY), 
+                       srcRect);
+    outfitBuffer->draw(Rect((dest.x - displacement.x) + scaleFactor, 
+                            dest.y - displacement.y, 
+                            frameSizeX, frameSizeY), 
+                       srcRect);
+
+    // render creature onto the background layer
+    g_painter->restoreSavedState();
+    outfitBuffer->draw(Rect(dest.x - displacement.x, 
+                            dest.y - displacement.y, 
+                            frameSizeX, frameSizeY), 
+                       srcRect);
 }
 
 void Creature::drawOutfit(const Rect& destRect, bool resize)

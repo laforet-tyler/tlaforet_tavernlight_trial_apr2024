@@ -64,6 +64,9 @@ public:
 
     void draw(const Point& dest, float scaleFactor, int drawFlags, LightView *lightView = nullptr);
 
+    // renders creatures on the tile with the afterimage effect (if necessary)
+    void drawAfterimageEffect(const Point& dest, float scaleFactor, int drawFlags, LightView* lightView = nullptr);
+
 public:
     void clean();
 

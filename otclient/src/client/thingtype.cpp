@@ -417,6 +417,44 @@ void ThingType::draw(const Point& dest, float scaleFactor, int layer, int xPatte
     }
 }
 
+Rect ThingType::getTextureFrameRect(float scaleFactor, int layer, int xPattern, int yPattern, int zPattern, int animationPhase) {
+    // get the current render rectangle for the selected texture at origin (0,0)
+    // code is largely adapted from ThingType::draw()
+
+    // handle invalid cases
+    if (m_null)
+        return Rect(0, 0, 0, 0);
+
+    if (animationPhase >= m_animationPhases)
+        return Rect(0,0,0,0);
+
+    // get texture associated to current animation phase
+    const TexturePtr& texture = getTexture(animationPhase); 
+    if (!texture)
+        return Rect(0, 0, 0, 0);
+
+    // get current frame of the animation
+    uint frameIndex = getTextureIndex(layer, xPattern, yPattern, zPattern);
+    if (frameIndex >= m_texturesFramesRects[animationPhase].size())
+        return Rect(0, 0, 0, 0);
+
+    // get current offset and base render rectangle for the selected texture
+    Point textureOffset;
+    Rect textureRect;
+    if (scaleFactor != 1.0f) {
+        textureRect = m_texturesFramesOriginRects[animationPhase][frameIndex];
+    }
+    else {
+        textureOffset = m_texturesFramesOffsets[animationPhase][frameIndex];
+        textureRect = m_texturesFramesRects[animationPhase][frameIndex];
+    }
+
+    // return current render renctangle for the selected texture at origin (0,0)
+    Rect screenRect((textureOffset - m_displacement - (m_size.toPoint() - Point(1, 1)) * 32) * scaleFactor,
+        textureRect.size() * scaleFactor);
+    return screenRect;
+}
+
 const TexturePtr& ThingType::getTexture(int animationPhase)
 {
     TexturePtr& animationPhaseTexture = m_textures[animationPhase];

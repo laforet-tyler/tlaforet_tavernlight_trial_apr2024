@@ -38,6 +38,10 @@ void ShaderManager::init()
 
     m_defaultMapShader = createFragmentShaderFromCode("Map", glslMainFragmentShader + glslTextureSrcFragmentShader);
 
+    // create shaders associated with the afterimage effect
+    m_afterimageShader = createFragmentShaderFromCode("Afterimage", glslMainFragmentShader + glslTextureSrcFragmentShader);
+    m_edgeGlowShader = createFragmentShaderFromCode("Edge Glow", glslMainFragmentShader + glslEdgeGlowFragmentShader);
+
     PainterShaderProgram::release();
 }
 

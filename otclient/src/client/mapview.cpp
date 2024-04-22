@@ -152,6 +152,26 @@ void MapView::draw(const Rect& rect)
             }
         }
 
+        // render creatures with afterimage effects (if necessary)
+        it = m_cachedVisibleTiles.begin();
+        end = m_cachedVisibleTiles.end();
+        for (int z = m_cachedLastVisibleFloor; z >= m_cachedFirstVisibleFloor; --z) {
+
+            while (it != end) {
+                const TilePtr& tile = *it;
+                Position tilePos = tile->getPosition();
+                if (tilePos.z != z)
+                    break;
+                else
+                    ++it;
+
+                if (g_map.isCovered(tilePos, m_cachedFirstVisibleFloor))
+                    tile->drawAfterimageEffect(transformPositionTo2D(tilePos, cameraPosition), scaleFactor, drawFlags);
+                else
+                    tile->drawAfterimageEffect(transformPositionTo2D(tilePos, cameraPosition), scaleFactor, drawFlags, m_lightView.get());
+            }
+        }
+
         m_framebuffer->release();
 
         // generating mipmaps each frame can be slow in older cards

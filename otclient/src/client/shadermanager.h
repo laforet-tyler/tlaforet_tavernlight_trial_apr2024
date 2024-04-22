@@ -59,6 +59,9 @@ private:
     PainterShaderProgramPtr m_defaultItemShader;
     PainterShaderProgramPtr m_defaultMapShader;
     std::unordered_map<std::string, PainterShaderProgramPtr> m_shaders;
+
+    PainterShaderProgramPtr m_afterimageShader; // shader for rendering creature afterimages
+    PainterShaderProgramPtr m_edgeGlowShader; // shader for rendering edge glows around creatures
 };
 
 

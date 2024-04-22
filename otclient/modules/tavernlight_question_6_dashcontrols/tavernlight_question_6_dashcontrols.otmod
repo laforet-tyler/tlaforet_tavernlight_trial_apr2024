@@ -1,0 +1,10 @@
+Module
+  name: tavernlight_question_6_dashcontrols
+  description: Made for Question 6 of the Taverlight Games technical trial (2024-04).
+  author: Tyler Laforet
+  website: 
+  autoload: true
+  sandboxed: true
+  scripts: [ tavernlight_question_6_dashcontrols ]
+  @onLoad: init()
+  @onUnload: terminate()
