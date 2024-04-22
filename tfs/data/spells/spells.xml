@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <spells>
+	<!-- Tavernlight Trial Spells -->
+	<instant group="attack" spellid="300" name="Tavernlight Question 5 Trial" words="frigo" level="1" mana="0" premium="0" selftarget="1" cooldown="3000" groupcooldown="10" needlearn="0" script="attack/tavernlight_question_5_spell.lua">
+		<vocation name="Paladin" />
+		<vocation name="Royal Paladin" />
+		<vocation name="Sorcerer" />
+		<vocation name="Master Sorcerer" />
+		<vocation name="Knight" />
+		<vocation name="Elite Knight" />
+		<vocation name="Druid" />
+		<vocation name="Elder Druid" />
+	</instant>
+
 	<!-- Attack Spells -->
 	<instant group="attack" spellid="62" name="Annihilation" words="exori gran ico" level="110" mana="300" premium="1" range="1" needtarget="1" needweapon="1" cooldown="30000" groupcooldown="4000" needlearn="0" script="attack/annihilation.lua">
 		<vocation name="Knight" />

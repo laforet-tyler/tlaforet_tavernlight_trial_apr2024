@@ -46,13 +46,13 @@ void Effect::drawEffect(const Point& dest, float scaleFactor, bool animate, int 
         }
     }
 
-    int xPattern = offsetX % getNumPatternX();
-    if(xPattern < 0)
-        xPattern += getNumPatternX();
+    // fix pattern for rendering magic effects being offset incorrectly
+    // credit for fix goes to: https://otland.net/threads/broken-effects-drawing.271577/#post-2616167 and https://github.com/mehah/otclient
+    int xPattern = unsigned(offsetX) % getNumPatternX();
+    xPattern = 1 - xPattern - getNumPatternX();
+    if (xPattern < 0) xPattern += getNumPatternX();
 
-    int yPattern = offsetY % getNumPatternY();
-    if(yPattern < 0)
-        yPattern += getNumPatternY();
+    int yPattern = unsigned(offsetY) % getNumPatternY();
 
     rawGetThingType()->draw(dest, scaleFactor, 0, xPattern, yPattern, 0, animationPhase, lightView);
 }
