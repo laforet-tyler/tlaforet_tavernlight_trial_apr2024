@@ -131,6 +131,9 @@ void GraphicalApplication::run()
         // poll all events before rendering
         poll();
 
+        // onPoll callback to act as a post update for lua features
+        g_lua.callGlobalField("g_app", "onPoll");
+
         if(g_window.isVisible()) {
             // the screen consists of two panes
             // background pane - high updated and animated pane (where the game are stuff happens)
