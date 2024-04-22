@@ -1,0 +1,13 @@
+MainWindow
+  id: jumpWindow
+  !text: tr('')
+  size: 200 200
+  @onEscape: toggle()
+
+  Button
+    id: buttonJump
+    !text: tr('Jump!')
+    width: 40
+    anchors.left: parent.left
+    anchors.top: parent.top
+    @onClick: resetJumpButton()
