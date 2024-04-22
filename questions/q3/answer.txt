@@ -1,0 +1,18 @@
+function removeMemberFromParty(playerId, memberName)
+	player = Player(playerId)
+	
+	-- need to check if a player was actually found for the inputted id or errors will occur
+	-- when no such player with said id exists
+	if player then
+		local party = player:getParty()
+	
+		for _,member in pairs(party:getMembers()) do
+			-- a comparison was done originally on an name string vs. a player, which will 
+			-- always return false. we need to compare the name string of the player instead
+			if member:getName() == memberName then
+				-- we already have the member, we do not need to get a new instance of it
+				party:removeMember(member)
+			end
+		end
+	end
+end

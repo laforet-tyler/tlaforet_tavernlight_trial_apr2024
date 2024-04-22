@@ -1,0 +1,40 @@
+void Game::addItemToPlayer(const std::string& recipient, uint16_t itemId)
+{
+	-- moving this before player code to simplify the order of returns and when memory must be deleted
+	Item* item = Item::CreateItem(itemId);
+	if (!item) {
+		-- item is a nullptr here so it does not need to be deleted
+		return;
+	}
+
+	bool loadedNewPlayer = false; -- we need to keep track of if the player is a new player variable created 
+	                              -- by IOLoginData or not
+	Player* player = g_game.getPlayerByName(recipient);
+	if (!player) {
+		player = new Player(nullptr);
+		loadedNewPlayer = true;
+		if (!IOLoginData::loadPlayerByName(player, recipient)) {
+			delete player; -- a new player variable was created here so it must be deleted or else a memory
+			               -- leak will occur
+			delete item; -- looking at item.cpp in the source, we see that this function creates new variables
+			             -- that must be deleted else a memory leak will occur
+			return;
+		}
+	}
+
+	local ret = g_game.internalAddItem(player->getInbox(), item, INDEX_WHEREEVER, FLAG_NOLIMIT);
+	if (ret != RETURNVALUE_NOERROR) {
+		delete item; -- an error has occurred when trying to add the item and so the item is not stored properly
+		             -- thus we need to delete it or else a memory leak will occur
+	}
+
+	if (player->isOffline()) {
+		IOLoginData::savePlayer(player);
+	}
+	
+	if (loadedNewPlayer) {
+		delete player; -- we want to delete the player variable only if a new variable was created. if the player
+		               -- is one obtained from g_game, then it is stored elsewhere and errors will occur if we
+					   -- delete it
+	}
+}

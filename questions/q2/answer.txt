@@ -1,0 +1,31 @@
+function printSmallGuildNames(memberCount)
+	local selectGuildQuery = "SELECT `name` FROM `guilds` WHERE `max_members` < %d;"
+	local resultId = db.storeQuery(string.format(selectGuildQuery, memberCount))
+	
+	-- the original function only printed the first result, did not check if the result was valid (~= false)
+	-- and did not pass the resultId into result.getString()
+	local tmpResultId = resultId
+	local names = nil
+	while tmpResultId ~= false do
+		local guildName = result.getString(tmpResultId, "name")
+		if names == nil then
+			names = guildName
+		else
+			names = names .. ", " .. guildName
+		end
+		
+		tmpResultId = result.next(resultId)
+	end
+	
+	-- print the results of the query in a structured manner
+	if names == nil then
+		print("No guilds with max members < " .. memberCount .. " exist.")
+	else
+		print("Small guilds: " .. names)
+	end
+
+	-- if the result is valid, we need to free it
+	if resultId ~= false then
+		result.free(resultId)
+	end
+end

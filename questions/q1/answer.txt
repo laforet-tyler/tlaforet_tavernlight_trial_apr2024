@@ -1,0 +1,17 @@
+local STORAGE_KEY = 1000 -- moved this to a constant value for better readability and easier ability
+                         -- to be modified later
+
+-- changing this from a hardcoded key value to one that is defined by the function that uses it
+-- allows it be more flexible and able to be used more for future storage values
+local function releaseStorage(player, key)
+	player:setStorageValue(key, -1)
+end
+
+function onLogout(player)
+	if player:getStorageValue(STORAGE_KEY) == 1 then
+		releaseStorage(player, STORAGE_KEY) -- use of addEvent delayed the releasing of the storage 
+		                                    -- value by 1000 game ticks when it seems like the 
+											-- intention is to have it immediately release upon logout
+	end
+	return true
+end
